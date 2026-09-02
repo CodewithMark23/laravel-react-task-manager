@@ -32,8 +32,8 @@ class TaskController extends Controller
     {
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'date_time'   => 'nullable|date',
+            'description' => 'required|string',
+            'date_time'   => 'required|date',
         ]);
 
         $task = Task::create($validated);
@@ -49,8 +49,8 @@ class TaskController extends Controller
     {
         $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'date_time'   => 'nullable|date',
+            'description' => 'sometimes|required|string',
+            'date_time'   => 'sometimes|required|date',
             'is_done'     => 'sometimes|boolean',
         ]);
 
