@@ -15,5 +15,6 @@ class Task extends Model
 
     protected $casts = [
         'is_done' => 'boolean',
+        'date_time' => 'datetime',
     ];
 }
