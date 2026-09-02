@@ -16,13 +16,12 @@ function formatDateTimeLabel(dt) {
 }
 
 export default function Index({ tasks = [] }) {
-    const { data, setData, post, processing, reset } = useForm({
+    const { data, setData, post, processing, reset, errors } = useForm({
         title: '',
         description: '',
         date_time: '',
     });
 
-    const [showAddDetails, setShowAddDetails] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editForm, setEditForm] = useState({
         title: '',
@@ -32,18 +31,17 @@ export default function Index({ tasks = [] }) {
 
     function addTask(e) {
         e.preventDefault();
-        if (!data.title.trim()) return;
 
         post('/tasks', {
             preserveScroll: true,
-            onSuccess: () => {
-                reset();
-                setShowAddDetails(false);
-            },
+            onSuccess: () => reset(),
         });
     }
 
     function toggleTask(task) {
+        // Cancel any active edit when toggling
+        if (editingTaskId === task.id) setEditingTaskId(null);
+
         router.patch(`/tasks/${task.id}`, {
             is_done: !task.is_done,
         }, {
@@ -82,28 +80,16 @@ export default function Index({ tasks = [] }) {
         setEditingTaskId(null);
     }
 
-    // Category styling helper
-    function getTaskCategory(title = '') {
-        const lower = title.toLowerCase();
-        if (lower.includes('work') || lower.includes('report') || lower.includes('email') || lower.includes('presentation') || lower.includes('mockup')) {
-            return { name: 'Work', bg: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' };
-        }
-        if (lower.includes('home') || lower.includes('groceries') || lower.includes('milk') || lower.includes('clean')) {
-            return { name: 'Home', bg: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
-        }
-        return { name: 'Personal', bg: 'bg-blue-50 text-blue-600', dot: 'bg-blue-500' };
-    }
-
     const activeTasks = tasks.filter((t) => !t.is_done);
     const completedTasks = tasks.filter((t) => t.is_done);
 
-    // Inline edit form — shared between active and completed tasks
+    // Inline edit form — only for active tasks
     function renderEditForm(task) {
         return (
             <form
                 key={task.id}
                 onSubmit={(e) => saveEditing(e, task.id)}
-                className="p-4 bg-slate-50/90 flex flex-col gap-3 transition border-b border-slate-100"
+                className="p-4 bg-slate-50/90 flex flex-col gap-3 border-b border-slate-100"
             >
                 <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Edit Task</div>
 
@@ -120,8 +106,9 @@ export default function Index({ tasks = [] }) {
                     rows="2"
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Description (optional)..."
+                    placeholder="Description..."
                     className="border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-indigo-500 resize-none"
+                    required
                 />
 
                 <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
@@ -132,6 +119,7 @@ export default function Index({ tasks = [] }) {
                             value={editForm.date_time}
                             onChange={(e) => setEditForm({ ...editForm, date_time: e.target.value })}
                             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-indigo-500 text-slate-700"
+                            required
                         />
                     </div>
                     <div className="flex gap-2 sm:mt-5">
@@ -154,9 +142,8 @@ export default function Index({ tasks = [] }) {
         );
     }
 
-    // Task row rendering — shared between active and completed
+    // Task row rendering
     function renderTaskRow(task, isCompleted = false) {
-        const cat = getTaskCategory(task.title);
         const timeLabel = formatDateTimeLabel(task.date_time);
 
         return (
@@ -201,31 +188,32 @@ export default function Index({ tasks = [] }) {
                     </div>
                 </div>
 
-                {/* Right: Badge + Time + Edit + Delete */}
+                {/* Right: Time + Edit (active only) + Delete */}
                 <div className="flex items-center gap-2.5 shrink-0">
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${cat.bg}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${cat.dot}`}></span>
-                        {cat.name}
-                    </span>
-
                     {timeLabel && (
                         <span className="text-xs text-slate-400 flex items-center gap-1">
-                            <span className="text-slate-300">•</span>
+                            <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                             {timeLabel}
                         </span>
                     )}
 
-                    <button
-                        type="button"
-                        onClick={() => startEditing(task)}
-                        className={`text-slate-400 hover:text-indigo-600 p-1 rounded transition ${isCompleted ? 'opacity-0 group-hover:opacity-100' : ''}`}
-                        title="Edit task"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                    </button>
+                    {/* Edit — only for active tasks */}
+                    {!isCompleted && (
+                        <button
+                            type="button"
+                            onClick={() => startEditing(task)}
+                            className="text-slate-400 hover:text-indigo-600 p-1 rounded transition"
+                            title="Edit task"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    )}
 
+                    {/* Delete — always visible */}
                     <button
                         type="button"
                         onClick={() => deleteTask(task.id)}
@@ -254,57 +242,55 @@ export default function Index({ tasks = [] }) {
                     <span className="text-sm font-medium text-slate-500">You can do it!</span>
                 </div>
 
-                {/* Add Task Form */}
-                <form onSubmit={addTask} className="mb-8 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60">
-                    <div className="flex gap-3">
+                {/* Add Task Form — description and date_time always visible and required */}
+                <form onSubmit={addTask} className="mb-8 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 flex flex-col gap-3">
+                    <div>
                         <input
                             type="text"
                             value={data.title}
                             onChange={(e) => setData('title', e.target.value)}
-                            placeholder="Add a new task..."
+                            placeholder="Task title..."
                             disabled={processing}
-                            className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-400 bg-white"
+                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-400 bg-white"
+                            required
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowAddDetails(!showAddDetails)}
-                            className="text-xs text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg border border-slate-200 bg-white transition"
-                        >
-                            {showAddDetails ? '− Less' : '+ Details'}
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={processing || !data.title.trim()}
-                            className="border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-800 font-medium px-4 py-2.5 rounded-xl text-sm flex items-center gap-1.5 transition bg-white"
-                        >
-                            <span>+ Add Task</span>
-                        </button>
+                        {errors.title && <p className="text-xs text-rose-500 mt-1">{errors.title}</p>}
                     </div>
 
-                    {/* Optional fields with date/time picker */}
-                    {showAddDetails && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200/60">
-                            <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Description</label>
-                                <input
-                                    type="text"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                    placeholder="Optional description..."
-                                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-400 bg-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Date & Time</label>
-                                <input
-                                    type="datetime-local"
-                                    value={data.date_time}
-                                    onChange={(e) => setData('date_time', e.target.value)}
-                                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-slate-400 bg-white"
-                                />
-                            </div>
+                    <div>
+                        <textarea
+                            rows="2"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Description..."
+                            disabled={processing}
+                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-400 bg-white resize-none"
+                            required
+                        />
+                        {errors.description && <p className="text-xs text-rose-500 mt-1">{errors.description}</p>}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                        <div className="flex-1 w-full">
+                            <label className="text-xs text-slate-500 mb-1 block">Date & Time</label>
+                            <input
+                                type="datetime-local"
+                                value={data.date_time}
+                                onChange={(e) => setData('date_time', e.target.value)}
+                                disabled={processing}
+                                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-slate-400 bg-white"
+                                required
+                            />
+                            {errors.date_time && <p className="text-xs text-rose-500 mt-1">{errors.date_time}</p>}
                         </div>
-                    )}
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-800 font-medium px-5 py-2.5 rounded-xl text-sm flex items-center gap-1.5 transition bg-white shrink-0"
+                        >
+                            + Add Task
+                        </button>
+                    </div>
                 </form>
 
                 {/* Active Tasks */}
@@ -332,11 +318,7 @@ export default function Index({ tasks = [] }) {
                             COMPLETED ({completedTasks.length})
                         </h2>
                         <div className="divide-y divide-slate-100 bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                            {completedTasks.map((task) =>
-                                editingTaskId === task.id
-                                    ? renderEditForm(task)
-                                    : renderTaskRow(task, true)
-                            )}
+                            {completedTasks.map((task) => renderTaskRow(task, true))}
                         </div>
                     </div>
                 )}
