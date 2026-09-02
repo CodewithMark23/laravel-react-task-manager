@@ -149,20 +149,18 @@ export default function Index({ tasks = [] }) {
         return (
             <div
                 key={task.id}
-                className={`px-4 py-3 flex items-start sm:items-center justify-between transition group ${
-                    isCompleted ? 'hover:bg-slate-50/50' : 'hover:bg-slate-50/80'
-                }`}
+                className={`px-4 py-3 flex items-start sm:items-center justify-between transition group ${isCompleted ? 'hover:bg-slate-50/50' : 'hover:bg-slate-50/80'
+                    }`}
             >
                 {/* Left: Checkbox/Check + Title + Description */}
                 <div className="flex items-start gap-3 min-w-0 flex-1 mr-3">
                     <button
                         type="button"
                         onClick={() => toggleTask(task)}
-                        className={`mt-0.5 sm:mt-0 w-4 h-4 flex items-center justify-center shrink-0 transition ${
-                            isCompleted
+                        className={`mt-0.5 sm:mt-0 w-4 h-4 flex items-center justify-center shrink-0 transition ${isCompleted
                                 ? 'rounded-full border border-slate-300 text-slate-400 hover:border-slate-500'
                                 : 'rounded border-2 border-slate-300 hover:border-slate-400 bg-white'
-                        }`}
+                            }`}
                     >
                         {isCompleted && (
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,9 +172,8 @@ export default function Index({ tasks = [] }) {
                     <div className="min-w-0 flex-1">
                         <span
                             onClick={() => toggleTask(task)}
-                            className={`text-sm font-medium block truncate cursor-pointer select-none ${
-                                isCompleted ? 'line-through text-slate-400' : 'text-slate-700'
-                            }`}
+                            className={`text-sm font-medium block truncate cursor-pointer select-none ${isCompleted ? 'line-through text-slate-400' : 'text-slate-700'
+                                }`}
                         >
                             {task.title}
                         </span>
